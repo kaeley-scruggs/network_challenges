@@ -1,0 +1,64 @@
+import regex
+
+goal = {
+    "interfaces": [],
+    "routing_protocols": [],
+    "shutdown_interfaces": [],
+}
+
+
+def get_config():
+    with open ("network-config.txt") as file:
+        contents = file.read()
+        return contents
+
+
+def remove_paragraphs(list):
+    separated_cleaned = []
+    for item in list:
+        if "\n" in item:
+            x = regex.sub("\\n", "", item)
+            separated_cleaned.append(x)
+        else:
+            separated_cleaned.append(item)
+    return separated_cleaned
+
+
+def find_interfaces(list):
+    global goal
+    for device in list:
+        if device.startswith("interface") is True:
+            temp = regex.split("(\w*)(.*)(ip address )(\d*.\d*.\d*.\d*.\d*.\d*.\d*.\d*) (.*)", device)
+            if temp[1] != "":
+                temp_dict = {"name": temp[1], "ip_address:": temp[4],}
+                goal["interfaces"].append(temp_dict)
+
+
+def find_protocols(list):
+    global goal
+    for device in list:
+        if device.startswith("router") is True:
+            protocol_temp = regex.split("router\s(\d|\w*.\d*)(\s*)\w* (\S*) (\S*)", device)
+            if protocol_temp[1] != "":
+                temp_dict = {"name": protocol_temp[1], "ip_address:": protocol_temp[3] + "/" + protocol_temp[4],}
+                goal["routing_protocols"].append(temp_dict)
+
+
+def find_shutdown(list):
+    global goal
+    for device in list:
+        found = regex.search("shutdown", device)
+        if found is not None:
+            protocol_temp = regex.split("(\w*)(.*)(ip address )(\d*.\d*.\d*.\d*.\d*.\d*.\d*.\d*) (.*)", device)
+            if protocol_temp[1] != "":
+                temp_dict = {"name": protocol_temp[2], "ip_address:": protocol_temp[4], "shutdown_status": protocol_temp[5]}
+                print(temp_dict)
+                goal["shutdown_interfaces"].append(temp_dict)
+
+
+separated = get_config().split("!")
+clean_config = remove_paragraphs(separated)
+find_shutdown(clean_config)
+find_protocols(clean_config)
+find_interfaces(clean_config)
+print(goal)
