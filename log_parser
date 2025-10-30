@@ -1,0 +1,53 @@
+log_file = """2023-10-26 08:00:01 INFO: System initialization complete.
+2023-10-26 08:00:05 SERVICE webserver STARTED
+2023-10-26 08:00:06 SERVICE webserver STOPPED
+2023-10-26 08:00:10 LOGIN SUCCESS for user: alice
+2023-10-26 08:00:15 SERVICE database STARTED
+2023-10-26 08:00:20 INFO: database connection established.
+2023-10-26 08:00:25 LOGIN SUCCESS for user: bob
+2023-10-26 08:00:30 ERROR: Failed to allocate memory for process X.
+2023-10-26 08:00:35 SERVICE auth_api STARTED
+2023-10-26 08:00:36 SERVICE auth_api STOPPED
+2023-10-26 08:00:40 LOGIN SUCCESS for user: alice
+2023-10-26 08:00:45 SERVICE database STOPPED
+2023-10-26 08:00:50 ERROR: Network interface down on port eth0.
+2023-10-26 08:00:55 LOGIN FAILURE for user: john
+"""
+
+def analyze_log_string(log_string):
+    log_list = log_string.splitlines()
+    users_logged_in = []
+    errors = []
+    service_instabilities = []
+    total_logins = 0
+    line_num = 0
+
+    for line in log_list:
+        # print(item.replace(" ", ""))
+        if "LOGIN SUCCESS" in line:
+            total_logins += 1
+            split = regex.split("user: (.*)", line)
+            if split[1] not in users_logged_in:
+                users_logged_in.append(split[1])
+        elif "ERROR" in line:
+            split = regex.split("(\d*-\d*-\d* \d*:\d*:\d*\s*)ERROR:\s*(.*)", line)
+            dict = {"timestamp": split[1], "message": split[2]}
+            errors.append(dict)
+        if "STARTED" in line:
+            next_line = log_list[line_num + 1]
+            if "STOPPED" in next_line:
+                current_service = regex.split("(?:\d*-\d*-\d* \d*:\d*:\d*\s)(?:SERVICE\s)(\w*)", line)
+                next_service = regex.split("(?:\d*-\d*-\d* \d*:\d*:\d*\s)(?:SERVICE\s)(\w*)", next_line)
+                if current_service[1] == next_service[1] and current_service[1] not in service_instabilities:
+                    service_instabilities.append(current_service[1])
+        line_num += 1
+    results = {
+        "users_logged_in": users_logged_in.sort(),
+        "errors": errors,
+        "service_instabilities": service_instabilities,
+        "total_logins": total_logins,
+    }
+    return results
+
+
+print(analyze_log_string(log_file))
